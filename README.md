@@ -19,7 +19,7 @@ cyanure
 
 All the above packages can be installed with `conda install` except `cyanure`, which can be installed with `pip install cyanure-mkl`.
 
-[CUDA Toolkit][4] also needs to be downloaded of the same version as used in Pytorch. Then place it under the path `$PATH_TO_CUDA` and run `export CUDA_HOME=$PATH_TO_CUDA`.
+[CUDA Toolkit][4] also needs to be downloaded with the same version as used in Pytorch. Then place it under the path `$PATH_TO_CUDA` and run `export CUDA_HOME=$PATH_TO_CUDA`.
 
 (OPTIONAL) To perform model visualization, you also need to install the following packages
 ```
@@ -85,7 +85,7 @@ python main_sup.py --dataset Mutagenicity --path-size 4 1 --sigma 0.4 0.4 --hidd
 ```
 
 
-[1]: dexiong.me
+[1]: http://arxiv.org/abs/2003.05189
 [2]: https://docs.conda.io/en/latest/miniconda.html
 [3]: https://pytorch.org
 [4]: https://developer.nvidia.com/cuda-downloads
