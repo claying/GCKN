@@ -9,9 +9,11 @@ The repository implements Graph Convolutional Kernel Networks (GCKNs) described 
 
 We strongly recommend users to use [miniconda][2] to install the following packages (link to [pytorch][3])
 ```
+python=3.6
 numpy
 scikit-learn
 pytorch=1.3.1
+pandas
 networkx
 Cython
 cyanure
