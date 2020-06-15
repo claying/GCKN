@@ -3,7 +3,7 @@
 The repository implements Graph Convolutional Kernel Networks (GCKNs) described in the following paper
 
 >Dexiong Chen, Laurent Jacob, Julien Mairal.
-[Convolutional Kernel Networks for Graph-Structured Data][1]. preprint ArXiv. 2020.
+[Convolutional Kernel Networks for Graph-Structured Data][1]. In *ICML*, 2020.
 
 ## Installation
 
