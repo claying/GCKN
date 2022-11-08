@@ -1,24 +1,13 @@
 # -*- coding: utf-8 -*-
 import os
 import torch
-# from torch.utils.cpp_extension import load
-from gckn.gckn_fast import gckn_fast_cpu
+# from gckn.gckn_fast import gckn_fast_cpu
 if torch.cuda.is_available():
-    from gckn.gckn_fast import gckn_fast_cuda
+    try:
+        from gckn.gckn_fast import gckn_fast_cuda
+    except:
+        pass
 
-# curr_folder = os.path.dirname(os.path.abspath(__file__))
-
-# gckn_fast_cpu = load(
-#     name='gckn_fast',
-#     sources=[os.path.join(curr_folder, 'gckn_fast.cpp')],
-#     verbose=True)
-
-# if torch.cuda.is_available():
-#     gckn_fast_cuda = load(
-#         name='gckn_fast_cuda',
-#         sources=[os.path.join(curr_folder, 'gckn_fast_cuda.cpp'),
-#                  os.path.join(curr_folder, 'gckn_fast_cuda_kernel.cu')],
-#         verbose=True)
 
 def path_conv_forward(path_indices, features):
     if features.is_cuda:

@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 import torch
 from torch import nn
-from .layers import PathLayer, NodePooling, Linear
+from gckn.layers import PathLayer, NodePooling, Linear
 
 
 class PathSequential(nn.Module):
     def __init__(self, input_size, hidden_sizes, path_sizes,
                  kernel_funcs=None, kernel_args_list=None,
-                 pooling='mean', #global_pooling='sum',
+                 pooling='mean', 
                  aggregation=False, **kwargs):
         super(PathSequential, self).__init__()
         self.input_size = input_size
@@ -29,7 +29,8 @@ class PathSequential(nn.Module):
                 kernel_args = kernel_args_list[i]
 
             layer = PathLayer(input_size, hidden_sizes[i], path_sizes[i],
-                              kernel_func, kernel_args, pooling, aggregation, **kwargs)
+                              kernel_func, kernel_args, pooling, aggregation,
+                              **kwargs)
             layers.append(layer)
             input_size = hidden_sizes[i]
             if aggregation:
@@ -72,8 +73,9 @@ class PathSequential(nn.Module):
             n_sampled_paths = 0
             try:
                 n_paths_per_batch = (
-                    n_sampling_paths + len(data_loader) - 1) // len(data_loader)
-            except:
+                    n_sampling_paths + len(data_loader) - 1
+                    ) // len(data_loader)
+            except Exception:
                 n_paths_per_batch = 1000
 
             paths = torch.Tensor(
@@ -106,7 +108,8 @@ class PathSequential(nn.Module):
                         features, paths_indices, n_paths_per_batch)
                     size = paths_batch.shape[0]
                     size = min(size, n_sampling_paths - n_sampled_paths)
-                    paths[n_sampled_paths: n_sampled_paths + size] = paths_batch[:size]
+                    paths[n_sampled_paths: n_sampled_paths + size
+                          ] = paths_batch[:size]
                     n_sampled_paths += size
 
             print("total number of sampled paths: {}".format(n_sampled_paths))
@@ -160,7 +163,9 @@ class GCKNetFeature(nn.Module):
                 n_nodes = n_nodes.cuda()
             with torch.no_grad():
                 batch_out = self(features, paths_indices,
-                    {'n_paths': n_paths, 'n_nodes': n_nodes}).cpu()
+                                 {'n_paths': n_paths,
+                                  'n_nodes': n_nodes}
+                                 ).cpu()
             output[batch_start: batch_start + size] = batch_out
             batch_start += size
         return output, data_loader.labels
@@ -170,15 +175,21 @@ class GCKNet(nn.Module):
     def __init__(self, nclass, input_size, hidden_sizes, path_sizes,
                  kernel_funcs=None, kernel_args_list=None,
                  pooling='mean', global_pooling='sum',
-                 weight_decay=0.0, **kwargs):
+                 aggregation=False, weight_decay=0.0,
+                 batch_norm=False,
+                 **kwargs):
         super().__init__()
 
         self.features = GCKNetFeature(
             input_size, hidden_sizes, path_sizes,
             kernel_funcs, kernel_args_list,
-            pooling, global_pooling, **kwargs)
+            pooling, global_pooling, aggregation, **kwargs)
         self.output_size = self.features.output_size
         self.nclass = nclass
+
+        self.batch_norm = batch_norm
+        if batch_norm:
+            self.bn_layer = nn.BatchNorm1d(self.output_size)
 
         self.classifier = Linear(self.output_size, nclass, weight_decay)
 
@@ -187,12 +198,15 @@ class GCKNet(nn.Module):
 
     def forward(self, input, paths_indices, other_info):
         features = self.representation(input, paths_indices, other_info)
+        if self.batch_norm:
+            features = self.bn_layer(features)
         return self.classifier(features)
 
     def unsup_train(self, data_loader, n_sampling_paths=100000,
                     init=None, use_cuda=False):
-        self.features.unsup_train(data_loader, n_sampling_paths,
-                                  init, use_cuda)
+        self.features.unsup_train(data_loader=data_loader,
+                                  n_sampling_paths=n_sampling_paths,
+                                  init=init, use_cuda=use_cuda)
 
     def unsup_train_classifier(self, data_loader, criterion, use_cuda=False):
         encoded_data, labels = self.features.predict(data_loader, use_cuda)

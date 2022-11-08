@@ -2,6 +2,8 @@ s
 tmp
 dataset/*
 !dataset/get_data.sh
+datasets/*
+!datasets/fold-idx
 logs*
 .DS_Store
 *.c

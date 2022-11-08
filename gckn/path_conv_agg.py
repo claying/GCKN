@@ -5,6 +5,7 @@ from gckn.dynamic_pooling.pooling import dpooling_forward, dpooling_backward
 
 
 MAXRAM = int(5e9)
+# MAXRAM = int(5e7)
 # MAXRAM = int(100000)
 
 def get_batch_indices(array, batch_size):
@@ -78,11 +79,11 @@ class PathConvAggregation(torch.autograd.Function):
 
 from gckn.dynamic_pooling.pooling import dpooling_torch, dpooling
 from gckn.gckn_fast.gckn_fast import path_conv, PathConv
-# def path_conv_agg(features, path_indices, kernel_size, pooling='sum', kappa=torch.exp, d_kappa=None):
-#     embeded = path_conv(path_indices, features)
-#     embeded = kappa(embeded)
-#     embeded = dpooling_torch(embeded, kernel_size, pooling)
-#     return embeded
+def path_conv_agg_torch(features, path_indices, kernel_size, pooling='sum', kappa=torch.exp, d_kappa=None, mask=None):
+    embeded = path_conv(path_indices, features)
+    embeded = kappa(embeded)
+    embeded = dpooling_torch(embeded, kernel_size, pooling)
+    return embeded
 
 def path_conv_agg(features, path_indices, kernel_size, pooling='sum', kappa=torch.exp, d_kappa=torch.exp, mask=None):
     ram_saving = MAXRAM <= (2 * path_indices.shape[0] * features.shape[-1] * features.element_size())
@@ -95,24 +96,6 @@ def path_conv_agg(features, path_indices, kernel_size, pooling='sum', kappa=torc
         embeded = embeded * mask.view(-1, 1)
     embeded = dpooling(embeded, kernel_size, pooling)
     return embeded
-
-# def path_conv_agg(features, path_indices, kernel_size, pooling='sum', kappa=torch.exp, d_kappa=None):
-#     batch_size = MAXRAM // (features.shape[-1] * features.element_size())
-#     indices = get_batch_indices(kernel_size, batch_size)
-#     batch_index = 0
-#     output = []
-#     # print(len(indices))
-#     for i in range(len(indices) - 1):
-#         batch_kernel_size = kernel_size[indices[i]:indices[i+1]]
-#         size = batch_kernel_size.sum().item()
-#         batch_path_indices = path_indices[batch_index: batch_index + size]
-#         embeded = PathConv.apply(batch_path_indices, features)
-#         embeded = kappa(embeded)
-#         embeded = dpooling(embeded, batch_kernel_size, pooling)
-#         output.append(embeded)
-#         batch_index += size
-#     output = torch.cat(output)
-#     return output
 
 def test(cuda=False):
     torch.manual_seed(1234)

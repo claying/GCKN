@@ -12,7 +12,8 @@ class MatrixInverseSqrt(torch.autograd.Function):
         use_cuda = input.is_cuda
         if input.size(0) < 300:
             input = input.cpu()
-        e, v = torch.symeig(input, eigenvectors=True)
+        # e, v = torch.symeig(input, eigenvectors=True)
+        e, v = torch.linalg.eigh(input, UPLO='U')
         if use_cuda and input.size(0) < 300:
             e = e.cuda()
             v = v.cuda()

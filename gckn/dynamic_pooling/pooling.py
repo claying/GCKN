@@ -1,25 +1,13 @@
 # -*- coding: utf-8 -*-
 import os
 import torch
-# from torch.utils.cpp_extension import load
-from gckn.dynamic_pooling import pooling_cpu
+# from gckn.dynamic_pooling import pooling_cpu
 if torch.cuda.is_available():
-    from gckn.dynamic_pooling import pooling_cuda
+    try:
+        from gckn.dynamic_pooling import pooling_cuda
+    except:
+        pass
 
-
-# curr_folder = os.path.dirname(os.path.abspath(__file__))
-
-# if torch.cuda.is_available():
-#     pooling_cuda = load(
-#         name='pooling_cuda',
-#         sources=["/".join([curr_folder, 'pooling_cuda.cpp']),
-#                  "/".join([curr_folder, 'pooling_cuda_kernel.cu'])],
-#         verbose=False)
-
-# pooling_cpu = load(
-#     name='pooling',
-#     sources=["/".join([curr_folder, 'pooling.cpp'])],
-#     verbose=False)
 
 def dpooling_forward(input, kernel_size, pooling='sum'):
     kernel_size = kernel_size.cumsum(0)
@@ -136,11 +124,9 @@ def dpooling_torch(input, kernel_size, pooling='sum'):
 
     return pool_matrix.mm(input)
 
-
 def test(cuda=False):
     torch.manual_seed(1234)
-    pooling = 'max'
-
+    pooling = 'sum'
     size = 500
     max_length = 100
     hidden_size = 128
@@ -217,4 +203,9 @@ def test(cuda=False):
 
 
 if __name__ == "__main__":
-    test(cuda=False)
+    # test(cuda=False)
+    # import pdb; pdb.set_trace()
+    input = torch.rand(10, 5)
+    attn_weight = torch.rand(10, 3, 2)
+    kernel_size = torch.tensor([4, 3, 3])
+    print(dpooling_ot(input, attn_weight, kernel_size))

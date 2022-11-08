@@ -6,12 +6,12 @@ import torch.nn.functional as F
 from . import ops
 from .kernels import kernels, d_kernels
 from .utils import EPS, normalize_, spherical_kmeans
-from .dynamic_pooling.pooling import dpooling
-from .path_conv_agg import path_conv_agg
+from .dynamic_pooling.pooling import dpooling_torch as dpooling
+from .path_conv_agg import path_conv_agg_torch as path_conv_agg
 
 import numpy as np
 from scipy import optimize
-from sklearn.linear_model.base import LinearModel, LinearClassifierMixin
+from sklearn.linear_model._base import LinearModel, LinearClassifierMixin
 
 
 class PathLayer(nn.Module):
@@ -31,8 +31,7 @@ class PathLayer(nn.Module):
             kernel_args = [kernel_args]
         if kernel_func == 'exp':
             kernel_args = [1. / kernel_arg ** 2 for kernel_arg in kernel_args]
-        self.kernel_args = kernel_args#[kernel_arg / path_size for kernel_arg in kernel_args]
-
+        self.kernel_args = kernel_args  # [kernel_arg / path_size for kernel_arg in kernel_args]
         self.kernel_func = kernels[kernel_func]
         self.kappa = lambda x: self.kernel_func(x, *self.kernel_args)
         d_kernel_func = d_kernels[kernel_func]
@@ -44,9 +43,12 @@ class PathLayer(nn.Module):
 
         if self.aggregation:
             self.register_buffer('lintrans',
-                                 torch.Tensor(path_size, hidden_size, hidden_size))
+                                 torch.Tensor(path_size, hidden_size,
+                                              hidden_size)
+                                 )
             self.register_buffer('divider',
-                                 torch.arange(1., path_size + 1).view(-1, 1, 1))
+                                 torch.arange(1., path_size + 1).view(-1, 1, 1)
+                                 )
         else:
             self.register_buffer('lintrans',
                                  torch.Tensor(hidden_size, hidden_size))
@@ -93,7 +95,7 @@ class PathLayer(nn.Module):
         self.normalize_()
         norms = features.norm(dim=-1, keepdim=True)
         # norms: n_nodes x (input_path_size) x 1
-        #output = features / norms.clamp(min=EPS)
+        # output = features / norms.clamp(min=EPS)
         output = torch.tensordot(features, self.weight, dims=[[-1], [-1]])
         output = output / norms.clamp(min=EPS).unsqueeze(2)
         n_nodes = output.shape[0]
@@ -101,7 +103,7 @@ class PathLayer(nn.Module):
             output = output.permute(0, 2, 1, 3).contiguous()
         # output: n_nodes x path_size x (input_path_size) x hidden_size
 
-        ## prepare masks
+        # prepare masks
         mask = None
         if self.aggregation:
             mask = [None for _ in range(self.path_size)]
@@ -123,7 +125,8 @@ class PathLayer(nn.Module):
             output = norms.view(1, -1, 1) * output
         else:
             output = path_conv_agg(
-                output, paths_indices[self.path_size - 1], other_info['n_paths'][self.path_size - 1],
+                output, paths_indices[self.path_size - 1],
+                other_info['n_paths'][self.path_size - 1],
                 self.pooling, self.kappa, self.d_kappa, mask)
             # output: n_nodes x ((input_path_size) x hidden_size)
             output = output.view(n_nodes, -1, self.hidden_size)
@@ -183,19 +186,26 @@ class PathLayer(nn.Module):
         self.normalize_()
         self._need_lintrans_computed = True
 
+
 class NodePooling(nn.Module):
     def __init__(self, pooling='mean'):
         super().__init__()
         self.pooling = pooling
+
+    def reset_parameters(self):
+        pass
 
     def forward(self, features, other_info):
         """
         features: n_nodes x (input_path_size) x input_size
         output: n_graphs x input_size
         """
+        # could normalizing the features before classification help?
+        # why permuting?
         features = features.permute(0, 2, 1).contiguous()
         n_nodes = features.shape[0]
-        output = dpooling(features.view(n_nodes, -1), other_info['n_nodes'], self.pooling)
+        output = dpooling(features.view(n_nodes, -1), other_info['n_nodes'],
+                          self.pooling)
 
         return output
 
@@ -247,7 +257,7 @@ class Linear(nn.Linear, LinearModel, LinearClassifierMixin):
         def eval_grad(w):
             dw = self.weight.grad.data
             if self.alpha != 0.0:
-                dw.add_(self.alpha, self.weight.data)
+                dw.add_(self.weight.data, alpha=self.alpha)
             if self.bias is not None:
                 db = self.bias.grad.data
                 dw = torch.cat((dw, db.view(-1, 1)), dim=1)
