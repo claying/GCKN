@@ -1,4 +1,3 @@
-s
 tmp
 dataset/*
 !dataset/get_data.sh
